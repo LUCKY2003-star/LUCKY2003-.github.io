@@ -3,101 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>动态圣诞树</title>
+    <title>浪漫粒子圣诞树</title>
     <style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
+        * { margin: 0; padding: 0; }
+        body { 
+            min-height: 100vh; 
+            background: #000; 
             overflow: hidden;
         }
-        /* 圣诞树样式 */
-        .tree {
-            position: relative;
-            transform-origin: center bottom;
-            animation: rotate 20s linear infinite;
-        }
-        .tree-top {
-            width: 0;
-            height: 0;
-            border-left: 150px solid transparent;
-            border-right: 150px solid transparent;
-            border-bottom: 200px solid #228B22;
-            position: relative;
-        }
-        .tree-top::after {
-            content: '';
+        canvas { display: block; width: 100vw; height: 100vh; }
+        .text {
             position: absolute;
-            top: 50px;
-            left: -120px;
-            width: 0;
-            height: 0;
-            border-left: 120px solid transparent;
-            border-right: 120px solid transparent;
-            border-bottom: 160px solid #32CD32;
-        }
-        .tree-top::before {
-            content: '';
-            position: absolute;
-            top: 100px;
-            left: -90px;
-            width: 0;
-            height: 0;
-            border-left: 90px solid transparent;
-            border-right: 90px solid transparent;
-            border-bottom: 120px solid #1A7F2E;
-        }
-        .tree-trunk {
-            width: 40px;
-            height: 80px;
-            background: #8B4513;
-            margin: 0 auto;
-        }
-        /* 雪花样式 */
-        .snow {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background: #fff;
-            border-radius: 50%;
-            animation: fall linear infinite;
-        }
-        /* 动画 */
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @keyframes fall {
-            0% { transform: translateY(-10px); }
-            100% { transform: translateY(100vh); }
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-family: 'Arial';
+            font-size: 20px;
+            opacity: 0.8;
+            z-index: 1;
         }
     </style>
 </head>
 <body>
-    <div class="tree">
-        <div class="tree-top"></div>
-        <div class="tree-trunk"></div>
-    </div>
+    <div class="text">Merry Christmas</div>
+    <canvas id="canvas"></canvas>
 
     <script>
-        // 生成雪花
-        function createSnow() {
-            const snow = document.createElement('div');
-            snow.classList.add('snow');
-            snow.style.left = Math.random() * 100 + 'vw';
-            snow.style.animationDuration = 5 + Math.random() * 5 + 's';
-            snow.style.opacity = 0.5 + Math.random() * 0.5;
-            document.body.appendChild(snow);
-            // 雪花消失后移除
-            setTimeout(() => {
-                snow.remove();
-            }, 10000);
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor(x, y, size, color) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.color = color;
+                this.speed = 0.05 + Math.random() * 0.1;
+                this.vy = -this.speed;
+                this.life = 300 + Math.random() * 100;
+                this.remainingLife = this.life;
+            }
+            update() {
+                this.y += this.vy;
+                this.remainingLife--;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.remainingLife / this.life;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
         }
-        // 每隔300ms生成一片雪花
-        setInterval(createSnow, 300);
+
+        const particles = [];
+        // 强制将圣诞树定位到屏幕中间（适配移动端）
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2; 
+        const treeColor = 'rgba(255, 100, 150, 0.9)';
+        const starColor = 'rgba(255, 255, 200, 1)';
+
+        function createTree() {
+            // 树顶星星
+            for (let i = 0; i < 50; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 20;
+                particles.push(new Particle(
+                    centerX + Math.cos(angle) * radius,
+                    centerY - 150 + Math.sin(angle) * radius,
+                    2 + Math.random(),
+                    starColor
+                ));
+            }
+
+            // 树冠（缩小尺寸适配移动端）
+            for (let layer = 0; layer < 8; layer++) {
+                const layerHeight = 20;
+                const layerWidth = 120 - layer * 12;
+                const layerY = centerY - 150 + layer * layerHeight;
+                for (let i = 0; i < layerWidth * 2; i++) {
+                    const offsetX = (i - layerWidth / 2) * 1.2;
+                    const randomOffset = Math.random() * 6 - 3;
+                    particles.push(new Particle(
+                        centerX + offsetX + randomOffset,
+                        layerY + Math.random() * 8,
+                        1.5 + Math.random(),
+                        treeColor
+                    ));
+                }
+            }
+        }
+
+        function drawReflection() {
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.scale(1, -1);
+            ctx.translate(0, -canvas.height);
+            ctx.globalAlpha = 0.3;
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, canvas.height - p.y + 150, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 强制生成足够粒子（打开即满屏）
+            if (particles.length < 1000) createTree();
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+                if (p.remainingLife <= 0) particles.splice(i, 1);
+            }
+
+            drawReflection();
+        }
+
+        // 初始化时直接生成满屏粒子
+        for(let i=0; i<3; i++) createTree();
+        animate();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
     </script>
 </body>
 </html>
