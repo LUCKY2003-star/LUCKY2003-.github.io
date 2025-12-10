@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>实心圣诞粒子树</title>
+    <title>3D旋转实心圣诞粒子树</title>
     <style>
         * { margin: 0; padding: 0; }
         body { 
@@ -39,24 +39,34 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
+        // 全局旋转参数
+        let rotationAngle = 0; // 旋转角度
+        const rotationSpeed = 0.003; // 旋转速度
+        const treeCenterX = canvas.width / 2; // 树中心X
+        const treeCenterY = canvas.height / 2 + 30; // 树中心Y（适配树高度）
+        const depthFactor = 0.08; // 3D深度因子（控制旋转立体感）
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            // 重置旋转中心
+            treeCenterX = canvas.width / 2;
+            treeCenterY = canvas.height / 2 + 30;
         }
 
-        // 粒子类（填充三层三角形区域，实现实心树）
+        // 粒子类（保留实心+圣诞色，增加3D旋转属性）
         class Particle {
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 const centerX = canvas.width / 2;
-                const starY = canvas.height / 2 - 180; // 树顶星星Y坐标
-                const totalTreeHeight = 300; // 圣诞树总高度
-                this.layer = Math.floor(Math.random() * 3); // 0=顶层 1=中层 2=底层
+                const starY = canvas.height / 2 - 180; 
+                const totalTreeHeight = 300; 
+                this.layer = Math.floor(Math.random() * 3); 
                 const layerHeight = totalTreeHeight / 3;
-                const layerYStart = starY + this.layer * layerHeight; // 每层的Y起始位置
+                const layerYStart = starY + this.layer * layerHeight;
 
-                // 每层三角形的宽度和范围（确保粒子填满区域）
+                // 每层三角形参数（实心填充）
                 let layerWidth, maxXOffset, minY, maxY;
                 if (this.layer === 0) {
                     layerWidth = 80;
@@ -75,42 +85,69 @@
                     maxY = layerYStart + layerHeight;
                 }
 
-                // 随机X（在层宽度范围内）
-                this.targetX = centerX + (Math.random() - 0.5) * layerWidth;
-                // 随机Y（在层高度内，且满足三角形斜率：离中心越远，Y越接近层底部）
+                // 原始目标坐标（未旋转）
+                this.originalTargetX = centerX + (Math.random() - 0.5) * layerWidth;
                 const slope = layerHeight / maxXOffset;
-                const xOffset = Math.abs(this.targetX - centerX);
+                const xOffset = Math.abs(this.originalTargetX - centerX);
                 const minLayerY = minY + xOffset * slope;
-                this.targetY = minLayerY + Math.random() * (maxY - minLayerY);
+                this.originalTargetY = minLayerY + Math.random() * (maxY - minLayerY);
+                
+                // Z轴深度（控制3D旋转时的偏移）
+                this.z = (Math.random() - 0.5) * 80; // 左右深度偏移
+                this.currentX = this.x;
+                this.currentY = this.y;
 
-                // 圣诞色调（增加绿色占比，保持红/粉点缀）
+                // 圣诞色调（绿60%、粉25%、红15%）
                 const colorProb = Math.random();
                 if (colorProb < 0.6) {
-                    this.color = `rgba(34, 139, 34, ${0.8 + Math.random() * 0.2})`; // 绿（60%）
+                    this.color = `rgba(34, 139, 34, ${0.8 + Math.random() * 0.2})`; 
                 } else if (colorProb < 0.85) {
-                    this.color = `rgba(255, 105, 180, ${0.8 + Math.random() * 0.2})`; // 粉（25%）
+                    this.color = `rgba(255, 105, 180, ${0.8 + Math.random() * 0.2})`; 
                 } else {
-                    this.color = `rgba(255, 69, 0, ${0.8 + Math.random() * 0.2})`; // 红（15%）
+                    this.color = `rgba(255, 69, 0, ${0.8 + Math.random() * 0.2})`; 
                 }
-                this.size = 2 + Math.random() * 2; // 更小粒子，填充更密集
+                this.size = 2 + Math.random() * 2; 
                 this.speed = 0.004 + Math.random() * 0.006;
                 this.progress = 0;
+            }
+
+            // 3D旋转计算
+            rotate3D() {
+                // 1. 转换为相对旋转中心的坐标
+                const dx = this.originalTargetX - treeCenterX;
+                const dy = this.originalTargetY - treeCenterY;
+
+                // 2. 计算旋转后的X（Y轴旋转，模拟绕树垂直轴旋转）
+                const rotatedX = dx * Math.cos(rotationAngle) - this.z * Math.sin(rotationAngle);
+                // 3. 计算深度偏移后的Y（增强3D感）
+                const rotatedY = dy + (this.z * Math.sin(rotationAngle) * depthFactor);
+                // 4. 还原到画布坐标
+                this.targetX = treeCenterX + rotatedX;
+                this.targetY = treeCenterY + rotatedY;
+
+                // 5. 根据深度调整大小和透明度（近大远小）
+                this.displaySize = this.size * (1 + (this.z * Math.sin(rotationAngle) * 0.01));
+                this.displayAlpha = this.color.match(/[\d.]+(?=\))/)[0] * (1 + (this.z * Math.sin(rotationAngle) * 0.01));
+                this.displayColor = this.color.replace(/[\d.]+(?=\))/, this.displayAlpha > 1 ? 1 : this.displayAlpha < 0.5 ? 0.5 : this.displayAlpha);
             }
 
             update() {
                 this.progress += this.speed;
                 if (this.progress > 1) this.progress = 1;
-                this.x = this.lerp(this.x, this.targetX, this.progress);
-                this.y = this.lerp(this.y, this.targetY, this.progress);
+                // 实时计算3D旋转后的目标坐标
+                this.rotate3D();
+                // 粒子缓动到目标位置
+                this.currentX = this.lerp(this.currentX, this.targetX, this.progress);
+                this.currentY = this.lerp(this.currentY, this.targetY, this.progress);
             }
 
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
+                ctx.arc(this.currentX, this.currentY, this.displaySize || this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.displayColor || this.color;
                 ctx.fill();
                 ctx.shadowBlur = 6;
-                ctx.shadowColor = this.color.replace(/[^,]+(?=\))/, '0.6');
+                ctx.shadowColor = this.displayColor || this.color.replace(/[\d.]+(?=\))/, '0.6');
             }
 
             lerp(a, b, t) {
@@ -148,37 +185,62 @@
             }
         }
 
+        // 初始化粒子（1200个保证实心）
         const particles = [];
         const snowflakes = [];
-        for (let i = 0; i < 1200; i++) particles.push(new Particle()); // 大幅增加粒子数，填满区域
+        for (let i = 0; i < 1200; i++) particles.push(new Particle());
         for (let i = 0; i < 80; i++) snowflakes.push(new Snowflake());
 
         function animate() {
+            // 清屏（保留渐变背景）
             ctx.fillStyle = "rgba(10, 16, 41, 0.2)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // 更新旋转角度
+            rotationAngle += rotationSpeed;
+            if (rotationAngle > Math.PI * 2) rotationAngle = 0;
+
+            // 按深度排序（保证3D层级正确）
+            particles.sort((a, b) => b.z - a.z);
+            
+            // 更新并绘制粒子
             particles.forEach(p => {
                 p.update();
                 p.draw();
             });
 
+            // 绘制雪花
             snowflakes.forEach(s => {
                 s.update();
                 s.draw();
             });
 
-            // 树顶星星
-            const starX = canvas.width / 2;
-            const starY = canvas.height / 2 - 180;
+            // 旋转的树顶星星（跟随树中心旋转）
+            const starOriginalX = canvas.width / 2;
+            const starOriginalY = canvas.height / 2 - 180;
+            const starZ = 0; // 星星在中心，无深度偏移
+            const starDx = starOriginalX - treeCenterX;
+            const starRotatedX = starDx * Math.cos(rotationAngle) - starZ * Math.sin(rotationAngle);
+            const starRotatedY = (starOriginalY - treeCenterY) + (starZ * Math.sin(rotationAngle) * depthFactor);
+            const starX = treeCenterX + starRotatedX;
+            const starY = treeCenterY + starRotatedY;
+            
             drawStar(starX, starY, 18, 10, 5);
             ctx.fillStyle = "rgba(255, 215, 0, 0.95)";
             ctx.fill();
             ctx.shadowBlur = 15;
             ctx.shadowColor = "rgba(255, 215, 0, 0.9)";
 
-            // 圣诞树底座
-            const baseX = canvas.width / 2;
-            const baseY = starY + 300;
+            // 旋转的圣诞树底座
+            const baseOriginalX = canvas.width / 2;
+            const baseOriginalY = canvas.height / 2 - 180 + 300;
+            const baseZ = 0;
+            const baseDx = baseOriginalX - treeCenterX;
+            const baseRotatedX = baseDx * Math.cos(rotationAngle) - baseZ * Math.sin(rotationAngle);
+            const baseRotatedY = (baseOriginalY - treeCenterY) + (baseZ * Math.sin(rotationAngle) * depthFactor);
+            const baseX = treeCenterX + baseRotatedX;
+            const baseY = treeCenterY + baseRotatedY;
+            
             ctx.beginPath();
             ctx.rect(baseX - 35, baseY, 70, 35);
             ctx.fillStyle = "rgba(139, 69, 19, 0.9)";
