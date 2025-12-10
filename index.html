@@ -52,12 +52,20 @@
                 // 初始随机位置
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                // 目标位置（圣诞树形状）
-                this.targetX = canvas.width / 2 + (Math.random() - 0.5) * 180;
-                const treeHeight = 300;
-                const treeWidth = 200;
-                const yRatio = (this.targetX - (canvas.width/2)) / (treeWidth/2);
-                this.targetY = canvas.height / 2 - treeHeight/2 + Math.abs(yRatio) * treeHeight * 0.6;
+                // 目标位置（3层圣诞树形状）
+                this.targetX = canvas.width / 2 + (Math.random() - 0.5) * 200;
+                const treeHeight = 350; // 总高度
+                const treeWidth = 220;  // 最大宽度
+                const yRatio = Math.abs(this.targetX - (canvas.width/2)) / (treeWidth/2);
+                
+                // 分层设置Y坐标（3层结构）
+                const layer = Math.floor(Math.random() * 3); // 0=上层 1=中层 2=下层
+                const layerHeight = treeHeight / 3;
+                this.targetY = canvas.height / 2 - treeHeight/2 + (layer * layerHeight) + yRatio * layerHeight * 0.7;
+                // 每层宽度递减
+                const layerWidthRatio = 1 - (layer * 0.2);
+                this.targetX = canvas.width / 2 + (Math.random() - 0.5) * treeWidth * layerWidthRatio;
+
                 // 粒子大小
                 this.size = 2 + Math.random() * 3;
                 // 荧光粉色
@@ -124,8 +132,8 @@
         // 初始化元素
         const particles = [];
         const snowflakes = [];
-        // 创建300个粒子（圣诞树）
-        for (let i = 0; i < 300; i++) particles.push(new Particle());
+        // 创建400个粒子（更密集的圣诞树）
+        for (let i = 0; i < 400; i++) particles.push(new Particle());
         // 创建80片雪花
         for (let i = 0; i < 80; i++) snowflakes.push(new Snowflake());
 
@@ -149,12 +157,22 @@
 
             // 绘制圣诞树顶部星星
             const starX = canvas.width / 2;
-            const starY = canvas.height / 2 - 180;
+            const starY = canvas.height / 2 - 190;
             drawStar(starX, starY, 20, 12, 5);
             ctx.fillStyle = "rgba(255, 215, 0, 0.9)";
             ctx.fill();
             ctx.shadowBlur = 15;
             ctx.shadowColor = "rgba(255, 215, 0, 0.8)";
+
+            // 绘制圣诞树底座
+            const baseX = canvas.width / 2;
+            const baseY = canvas.height / 2 + 120;
+            ctx.beginPath();
+            ctx.rect(baseX - 30, baseY, 60, 40);
+            ctx.fillStyle = "rgba(139, 69, 19, 0.9)";
+            ctx.fill();
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = "rgba(139, 69, 19, 0.7)";
 
             requestAnimationFrame(animate);
         }
