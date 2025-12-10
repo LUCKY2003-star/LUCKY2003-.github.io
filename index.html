@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>圣诞粒子树-心形特效版</title>
+    <title>圣诞粒子树-彩色心形版</title>
     <style>
         * { margin: 0; padding: 0; }
         body { 
@@ -149,7 +149,7 @@
             easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
         }
 
-        // 心形粒子类
+        // 心形粒子类（新增颜色渐变效果）
         class HeartParticle {
             constructor() {
                 this.centerX = canvas.width / 2;
@@ -158,10 +158,10 @@
                 this.angle = Math.random() * Math.PI * 2; // 初始角度
                 this.speed = 0.008 + Math.random() * 0.005; // 旋转速度
                 this.size = 2 + Math.random() * 2;
-                // 粉红色渐变
-                this.hue = 340 + Math.random() * 20;
-                this.color = `hsla(${this.hue}, 100%, 70%, ${0.8 + Math.random() * 0.2})`;
                 this.pulse = Math.random() * Math.PI; // 心跳脉动效果
+                // 颜色渐变相关
+                this.hueOffset = Math.random() * 360; // 每个粒子不同的初始色相
+                this.colorSpeed = 0.5 + Math.random() * 0.3; // 颜色变化速度
             }
 
             update() {
@@ -181,6 +181,12 @@
                 // 映射到画布位置并添加脉动
                 this.x = this.centerX + (x * (this.radius / 16)) * pulseSize;
                 this.y = this.centerY + (y * (this.radius / 16)) * pulseSize * -1; // 翻转Y轴
+                
+                // 更新颜色（在粉红色系循环渐变）
+                const hue = (320 + Math.sin(Date.now() * 0.001 + this.hueOffset) * 30 + this.colorSpeed) % 360;
+                const saturation = 80 + Math.sin(Date.now() * 0.0008 + this.hueOffset) * 20; // 饱和度变化
+                const lightness = 60 + Math.sin(Date.now() * 0.0012 + this.hueOffset) * 10; // 亮度变化
+                this.color = `hsla(${hue}, ${saturation}%, ${lightness}%, ${0.8 + Math.random() * 0.2})`;
             }
 
             draw() {
@@ -188,9 +194,10 @@
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
-                // 光晕效果
+                // 光晕效果也跟随颜色变化
+                const alpha = this.color.match(/[\d.]+(?=\))/)[0];
                 ctx.shadowBlur = 8;
-                ctx.shadowColor = this.color.replace(/[^,]+(?=\))/, '0.7');
+                ctx.shadowColor = this.color.replace(alpha, '0.7');
             }
         }
 
