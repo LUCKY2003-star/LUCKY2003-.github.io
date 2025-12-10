@@ -1,99 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态圣诞树</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            overflow: hidden;
+        }
+        /* 圣诞树样式 */
+        .tree {
+            position: relative;
+            transform-origin: center bottom;
+            animation: rotate 20s linear infinite;
+        }
+        .tree-top {
+            width: 0;
+            height: 0;
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-bottom: 200px solid #228B22;
+            position: relative;
+        }
+        .tree-top::after {
+            content: '';
+            position: absolute;
+            top: 50px;
+            left: -120px;
+            width: 0;
+            height: 0;
+            border-left: 120px solid transparent;
+            border-right: 120px solid transparent;
+            border-bottom: 160px solid #32CD32;
+        }
+        .tree-top::before {
+            content: '';
+            position: absolute;
+            top: 100px;
+            left: -90px;
+            width: 0;
+            height: 0;
+            border-left: 90px solid transparent;
+            border-right: 90px solid transparent;
+            border-bottom: 120px solid #1A7F2E;
+        }
+        .tree-trunk {
+            width: 40px;
+            height: 80px;
+            background: #8B4513;
+            margin: 0 auto;
+        }
+        /* 雪花样式 */
+        .snow {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: #fff;
+            border-radius: 50%;
+            animation: fall linear infinite;
+        }
+        /* 动画 */
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10px); }
+            100% { transform: translateY(100vh); }
+        }
+    </style>
+</head>
 <body>
+    <div class="tree">
+        <div class="tree-top"></div>
+        <div class="tree-trunk"></div>
+    </div>
+
     <script>
-        // 初始化
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // 1. 圣诞树（3层渐变圆锥）
-        // 下层（深绿）
-        const tree1 = new THREE.Mesh(
-            new THREE.ConeGeometry(6, 7),
-            new THREE.MeshLambertMaterial({ color: 0x1A7F2E })
-        );
-        tree1.position.y = 1;
-        scene.add(tree1);
-        // 中层（翠绿）
-        const tree2 = new THREE.Mesh(
-            new THREE.ConeGeometry(4.5, 6),
-            new THREE.MeshLambertMaterial({ color: 0x228B22 })
-        );
-        tree2.position.y = 5;
-        scene.add(tree2);
-        // 上层（浅绿）
-        const tree3 = new THREE.Mesh(
-            new THREE.ConeGeometry(3, 5),
-            new THREE.MeshLambertMaterial({ color: 0x32CD32 })
-        );
-        tree3.position.y = 9;
-        scene.add(tree3);
-        // 树干
-        const trunk = new THREE.Mesh(
-            new THREE.CylinderGeometry(1, 1.5, 4),
-            new THREE.MeshLambertMaterial({ color: 0x8B4513 })
-        );
-        trunk.position.y = -2;
-        scene.add(trunk);
-
-        // 2. 灯光（让渐变更立体）
-        const light = new THREE.PointLight(0xffffff, 1.5);
-        light.position.set(10, 15, 20);
-        scene.add(light);
-
-        // 3. 雪花点缀（随机小粒子）
-        const snowGeo = new THREE.BufferGeometry();
-        const snowPos = new Float32Array(100 * 3);
-        for (let i = 0; i < 100 * 3; i += 3) {
-            snowPos[i] = (Math.random() - 0.5) * 20;
-            snowPos[i+1] = Math.random() * 15;
-            snowPos[i+2] = (Math.random() - 0.5) * 20;
+        // 生成雪花
+        function createSnow() {
+            const snow = document.createElement('div');
+            snow.classList.add('snow');
+            snow.style.left = Math.random() * 100 + 'vw';
+            snow.style.animationDuration = 5 + Math.random() * 5 + 's';
+            snow.style.opacity = 0.5 + Math.random() * 0.5;
+            document.body.appendChild(snow);
+            // 雪花消失后移除
+            setTimeout(() => {
+                snow.remove();
+            }, 10000);
         }
-        snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
-        const snow = new THREE.Points(
-            snowGeo,
-            new THREE.PointsMaterial({ color: 0xffffff, size: 0.2 })
-        );
-        scene.add(snow);
-
-        // 相机位置
-        camera.position.z = 30;
-
-        // 动画：自转+缩放+雪花飘落
-        let scale = 1;
-        let scaleDir = 0.001;
-        function animate() {
-            requestAnimationFrame(animate);
-            // 圣诞树自转
-            tree1.rotation.y += 0.003;
-            tree2.rotation.y += 0.003;
-            tree3.rotation.y += 0.003;
-            trunk.rotation.y += 0.003;
-            // 缓慢缩放
-            scale += scaleDir;
-            if (scale > 1.05 || scale < 0.95) scaleDir *= -1;
-            tree1.scale.set(scale, scale, scale);
-            tree2.scale.set(scale, scale, scale);
-            tree3.scale.set(scale, scale, scale);
-            // 雪花飘落
-            const snowPos = snow.geometry.attributes.position.array;
-            for (let i = 1; i < 100 * 3; i += 3) {
-                snowPos[i] -= 0.02;
-                if (snowPos[i] < -2) snowPos[i] = 15;
-            }
-            snow.geometry.attributes.position.needsUpdate = true;
-            
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // 窗口自适应
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        // 每隔300ms生成一片雪花
+        setInterval(createSnow, 300);
     </script>
 </body>
 </html>
