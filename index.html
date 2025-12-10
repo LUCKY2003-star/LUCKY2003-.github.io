@@ -34,49 +34,52 @@
     <button class="btn">圣诞节快乐</button>
 
     <script>
-        // 获取Canvas
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // 调整Canvas大小
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
 
-        // 粒子类（构成圣诞树）
+        // 粒子类（优化树形+减缓速度）
         class Particle {
             constructor() {
-                // 初始随机位置
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                // 目标位置（3层圣诞树形状）
-                this.targetX = canvas.width / 2 + (Math.random() - 0.5) * 200;
-                const treeHeight = 350; // 总高度
-                const treeWidth = 220;  // 最大宽度
-                const yRatio = Math.abs(this.targetX - (canvas.width/2)) / (treeWidth/2);
-                
-                // 分层设置Y坐标（3层结构）
-                const layer = Math.floor(Math.random() * 3); // 0=上层 1=中层 2=下层
-                const layerHeight = treeHeight / 3;
-                this.targetY = canvas.height / 2 - treeHeight/2 + (layer * layerHeight) + yRatio * layerHeight * 0.7;
-                // 每层宽度递减
-                const layerWidthRatio = 1 - (layer * 0.2);
-                this.targetX = canvas.width / 2 + (Math.random() - 0.5) * treeWidth * layerWidthRatio;
+                const centerX = canvas.width / 2;
+                const starY = canvas.height / 2 - 200; // 星星Y坐标
+                const totalTreeHeight = 320; // 圣诞树总高度
 
-                // 粒子大小
+                // 分层：0=顶层（最小三角） 1=中层 2=底层（最大）
+                this.layer = Math.floor(Math.random() * 3);
+                const layerHeight = totalTreeHeight / 3;
+                
+                // 顶层：尖点对准星星（X=centerX），宽度最小
+                if (this.layer === 0) {
+                    this.targetX = centerX + (Math.random() - 0.5) * 80;
+                    this.targetY = starY + layerHeight * 0.2 + Math.abs(this.targetX - centerX) * 1.5;
+                }
+                // 中层：宽度中等
+                else if (this.layer === 1) {
+                    this.targetX = centerX + (Math.random() - 0.5) * 120;
+                    this.targetY = starY + layerHeight * 1.2 + Math.abs(this.targetX - centerX) * 1.2;
+                }
+                // 底层：宽度最大
+                else {
+                    this.targetX = centerX + (Math.random() - 0.5) * 180;
+                    this.targetY = starY + layerHeight * 2.2 + Math.abs(this.targetX - centerX) * 1;
+                }
+
                 this.size = 2 + Math.random() * 3;
-                // 荧光粉色
                 this.color = `rgba(255, 105, 180, ${0.7 + Math.random() * 0.3})`;
-                // 移动速度
-                this.speed = 0.01 + Math.random() * 0.02;
+                this.speed = 0.003 + Math.random() * 0.005; // 速度减慢（原0.01→0.003）
                 this.progress = 0;
             }
 
             update() {
-                // 从随机位置插值到目标位置
                 this.progress += this.speed;
                 if (this.progress > 1) this.progress = 1;
                 this.x = this.lerp(this.x, this.targetX, this.progress);
@@ -88,7 +91,6 @@
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
-                // 荧光效果
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = "rgba(255, 105, 180, 0.8)";
             }
@@ -98,7 +100,6 @@
             }
         }
 
-        // 雪花类
         class Snowflake {
             constructor() {
                 this.reset();
@@ -129,44 +130,37 @@
             }
         }
 
-        // 初始化元素
         const particles = [];
         const snowflakes = [];
-        // 创建400个粒子（更密集的圣诞树）
-        for (let i = 0; i < 400; i++) particles.push(new Particle());
-        // 创建80片雪花
+        for (let i = 0; i < 450; i++) particles.push(new Particle());
         for (let i = 0; i < 80; i++) snowflakes.push(new Snowflake());
 
-        // 动画循环
         function animate() {
-            // 半透明背景（拖影效果）
             ctx.fillStyle = "rgba(10, 16, 41, 0.2)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 更新并绘制粒子
             particles.forEach(p => {
                 p.update();
                 p.draw();
             });
 
-            // 更新并绘制雪花
             snowflakes.forEach(s => {
                 s.update();
                 s.draw();
             });
 
-            // 绘制圣诞树顶部星星
+            // 星星（对准顶层尖点）
             const starX = canvas.width / 2;
-            const starY = canvas.height / 2 - 190;
+            const starY = canvas.height / 2 - 200;
             drawStar(starX, starY, 20, 12, 5);
             ctx.fillStyle = "rgba(255, 215, 0, 0.9)";
             ctx.fill();
             ctx.shadowBlur = 15;
             ctx.shadowColor = "rgba(255, 215, 0, 0.8)";
 
-            // 绘制圣诞树底座
+            // 底座
             const baseX = canvas.width / 2;
-            const baseY = canvas.height / 2 + 120;
+            const baseY = starY + 320;
             ctx.beginPath();
             ctx.rect(baseX - 30, baseY, 60, 40);
             ctx.fillStyle = "rgba(139, 69, 19, 0.9)";
@@ -177,7 +171,6 @@
             requestAnimationFrame(animate);
         }
 
-        // 绘制五角星
         function drawStar(x, y, outerRadius, innerRadius, points) {
             ctx.beginPath();
             const angle = Math.PI / points;
@@ -190,7 +183,6 @@
             ctx.closePath();
         }
 
-        // 启动动画
         animate();
     </script>
 </body>
