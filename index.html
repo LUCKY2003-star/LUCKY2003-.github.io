@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grand Luxury Interactive Christmas Tree</title>
-    <!-- 正确的 CDN 资源链接 -->
+    <!-- 正确CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
@@ -40,17 +40,19 @@
     <div id="root" class="w-full h-screen"></div>
 
     <script type="text/babel">
-        // 全局变量挂载
-        const { useRef, useState, useEffect, useImperativeHandle, createContext, useContext } = React;
+        const { useRef, useState, useEffect, createContext, useContext } = React;
         const { Canvas, useFrame, useThree } = window.ReactThreeFiber;
         const { OrbitControls, Instance, useInstancedMesh, Bloom, PerspectiveCamera } = window.ReactThreeDrei;
         const { Leva } = window.Leva;
         const THREE = window.THREE;
 
-        // 状态上下文
-        const TreeContext = createContext({ toggleState: () => {} });
+        // 修复上下文问题：添加状态切换的共享状态
+        const TreeContext = createContext({
+            treeState: 'CHAOS',
+            toggleState: () => {}
+        });
 
-        // 工具函数：生成随机球形坐标
+        // 工具函数
         const getRandomSpherePosition = (radius = 10) => {
             const phi = Math.random() * Math.PI * 2;
             const theta = Math.random() * Math.PI;
@@ -60,8 +62,6 @@
                 radius * Math.sin(theta) * Math.sin(phi)
             );
         };
-
-        // 工具函数：生成圣诞树圆锥坐标
         const getTreeConePosition = (index, total, layer) => {
             const layers = 8;
             const layerHeight = 2.5;
@@ -81,17 +81,13 @@
             ).add(randomOffset);
         };
 
-        // 针叶粒子系统
+        // 针叶系统（修复上下文使用）
         const FoliageSystem = ({ count = 8000 }) => {
-            const [treeState, setTreeState] = useState('CHAOS');
+            const { treeState } = useContext(TreeContext);
             const [progress, setProgress] = useState(0);
             const { scene } = useThree();
             const pointsRef = useRef(null);
-            const toggleState = useRef(() => setTreeState(prev => prev === 'CHAOS' ? 'FORMED' : 'CHAOS'));
-            const { toggleState: contextToggle } = useContext(TreeContext);
-            useImperativeHandle(contextToggle, () => toggleState.current);
 
-            // 初始化双坐标
             const positions = useRef({ array: null, chaosPositions: [], targetPositions: [] }).current;
             useEffect(() => {
                 positions.array = new Float32Array(count * 3);
@@ -109,7 +105,6 @@
                 }
             }, [count]);
 
-            // 着色器材质
             const foliageMaterial = useRef(new THREE.ShaderMaterial({
                 uniforms: {
                     color: { value: new THREE.Color(0x0A4D3C) },
@@ -138,7 +133,6 @@
                 blending: THREE.AdditiveBlending
             })).current;
 
-            // 初始化粒子
             useEffect(() => {
                 const geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.BufferAttribute(positions.array, 3));
@@ -151,7 +145,6 @@
                 };
             }, [scene, positions.array]);
 
-            // 状态动画
             useEffect(() => {
                 const targetProgress = treeState === 'FORMED' ? 1 : 0;
                 const duration = 2000;
@@ -162,16 +155,18 @@
                     const eased = 1 - Math.pow(1 - easeProgress, 3);
                     setProgress(eased);
                     foliageMaterial.uniforms.progress.value = eased;
-                    const positionAttr = pointsRef.current.geometry.attributes.position;
-                    const array = positionAttr.array;
-                    for (let i = 0; i < count; i++) {
-                        const chaosPos = positions.chaosPositions[i];
-                        const targetPos = positions.targetPositions[i];
-                        array[i * 3] = THREE.MathUtils.lerp(chaosPos.x, targetPos.x, eased);
-                        array[i * 3 + 1] = THREE.MathUtils.lerp(chaosPos.y, targetPos.y, eased);
-                        array[i * 3 + 2] = THREE.MathUtils.lerp(chaosPos.z, targetPos.z, eased);
+                    const positionAttr = pointsRef.current?.geometry.attributes.position;
+                    if (positionAttr) {
+                        const array = positionAttr.array;
+                        for (let i = 0; i < count; i++) {
+                            const chaosPos = positions.chaosPositions[i];
+                            const targetPos = positions.targetPositions[i];
+                            array[i * 3] = THREE.MathUtils.lerp(chaosPos.x, targetPos.x, eased);
+                            array[i * 3 + 1] = THREE.MathUtils.lerp(chaosPos.y, targetPos.y, eased);
+                            array[i * 3 + 2] = THREE.MathUtils.lerp(chaosPos.z, targetPos.z, eased);
+                        }
+                        positionAttr.needsUpdate = true;
                     }
-                    positionAttr.needsUpdate = true;
                     if (easeProgress < 1) requestAnimationFrame(animate);
                 };
                 animate();
@@ -180,9 +175,9 @@
             return null;
         };
 
-        // 装饰物系统
+        // 装饰物系统（修复上下文）
         const OrnamentsSystem = () => {
-            const [treeState] = useContext(TreeContext);
+            const { treeState } = useContext(TreeContext);
             const [progress, setProgress] = useState(0);
             const ornamentConfig = {
                 gift: { count: 30, weight: 1.0, color: 0xFFD700, geo: new THREE.BoxGeometry(0.5, 0.5, 0.5) },
@@ -190,7 +185,6 @@
                 light: { count: 150, weight: 0.2, color: 0xFFEA80, geo: new THREE.SphereGeometry(0.1, 8, 8) }
             };
 
-            // 初始化装饰位置
             const ornamentPositions = useRef({}).current;
             useEffect(() => {
                 Object.entries(ornamentConfig).forEach(([type, config]) => {
@@ -204,10 +198,9 @@
                 });
             }, []);
 
-            // 实例化装饰
             const useOrnamentInstances = (type) => {
                 const config = ornamentConfig[type];
-                const { chaos, target } = ornamentPositions[type];
+                const { chaos, target } = ornamentPositions[type] || { chaos: [], target: [] };
                 const { instancedMesh, updateMatrixAt } = useInstancedMesh(
                     () => config.geo,
                     () => new THREE.MeshStandardMaterial({
@@ -225,6 +218,7 @@
                     for (let i = 0; i < config.count; i++) {
                         const chaosPos = chaos[i];
                         const targetPos = target[i];
+                        if (!chaosPos || !targetPos) return;
                         const currentPos = new THREE.Vector3(
                             THREE.MathUtils.lerp(chaosPos.x, targetPos.x, easedProgress),
                             THREE.MathUtils.lerp(chaosPos.y, targetPos.y, easedProgress),
@@ -239,7 +233,6 @@
                 return instancedMesh;
             };
 
-            // 状态动画
             useEffect(() => {
                 const targetProgress = treeState === 'FORMED' ? 1 : 0;
                 const duration = 2500;
@@ -263,64 +256,57 @@
             );
         };
 
-        // 圣诞树主体
+        // 圣诞树主体（修复上下文）
         const ChristmasTree = () => {
-            const toggleState = useRef();
             return (
-                <TreeContext.Provider value={{ toggleState }}>
+                <>
                     <FoliageSystem />
                     <OrnamentsSystem />
-                    {/* 底座 */}
                     <mesh position={[0, -9, 0]}>
                         <cylinderGeometry args={[2.5, 3, 1.5, 16]} />
                         <meshStandardMaterial color="#8B4513" metalness={0.1} roughness={0.3} />
                     </mesh>
-                    {/* 星星顶饰 */}
                     <mesh position={[0, 8, 0]} scale={[1.5, 1.5, 1.5]}>
                         <octahedronGeometry args={[0.8, 0]} />
                         <meshStandardMaterial color="#FFD700" emissive="#FFEA80" emissiveIntensity={1.5} metalness={1} roughness={0.1} />
                     </mesh>
-                </TreeContext.Provider>
+                </>
             );
         };
 
-        // 主应用
+        // 主应用（修复上下文共享）
         const App = () => {
             const [treeState, setTreeState] = useState('CHAOS');
             const toggleTreeState = () => setTreeState(prev => prev === 'CHAOS' ? 'FORMED' : 'CHAOS');
 
             return (
-                <div className="relative w-full h-full">
-                    <Canvas camera={{ position: [0, 0, 20], fov: 50 }}>
-                        <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={50} />
-                        {/* 灯光 */}
-                        <ambientLight intensity={0.3} color="#0A4D3C" />
-                        <directionalLight position={[10, 10, 10]} intensity={1.2} color="#FFD700" castShadow />
-                        <pointLight position={[0, 5, 5]} intensity={2} color="#FFEA80" distance={20} />
-                        {/* 圣诞树 */}
-                        <ChristmasTree />
-                        {/* 辉光效果 */}
-                        <Bloom threshold={0.8} strength={1.2} radius={0.8} luminanceThreshold={0.1} />
-                        {/* 控制器 */}
-                        <OrbitControls enableDamping dampingFactor={0.05} maxPolarAngle={Math.PI / 2} minDistance={10} maxDistance={35} />
-                    </Canvas>
-                    {/* UI */}
-                    <div className="absolute top-8 left-0 right-0 flex flex-col items-center z-10">
-                        <h1 className="text-[clamp(2rem,5vw,4rem)] text-gold-highlight text-shadow-glow font-bold mb-4 text-center">
-                            Grand Luxury Interactive Christmas Tree
-                        </h1>
-                        <button onClick={toggleTreeState} className="btn-luxury mt-4">
-                            {treeState === 'CHAOS' ? 'Form the Tree' : 'Scatter the Magic'}
-                        </button>
+                <TreeContext.Provider value={{ treeState, toggleState: toggleTreeState }}>
+                    <div className="relative w-full h-full">
+                        <Canvas camera={{ position: [0, 0, 20], fov: 50 }}>
+                            <PerspectiveCamera makeDefault position={[0, 0, 20]} fov={50} />
+                            <ambientLight intensity={0.3} color="#0A4D3C" />
+                            <directionalLight position={[10, 10, 10]} intensity={1.2} color="#FFD700" castShadow />
+                            <pointLight position={[0, 5, 5]} intensity={2} color="#FFEA80" distance={20} />
+                            <ChristmasTree />
+                            <Bloom threshold={0.8} strength={1.2} radius={0.8} luminanceThreshold={0.1} />
+                            <OrbitControls enableDamping dampingFactor={0.05} maxPolarAngle={Math.PI / 2} minDistance={10} maxDistance={35} />
+                        </Canvas>
+                        <div className="absolute top-8 left-0 right-0 flex flex-col items-center z-10">
+                            <h1 className="text-[clamp(2rem,5vw,4rem)] text-gold-highlight text-shadow-glow font-bold mb-4 text-center">
+                                Grand Luxury Interactive Christmas Tree
+                            </h1>
+                            <button onClick={toggleTreeState} className="btn-luxury mt-4">
+                                {treeState === 'CHAOS' ? 'Form the Tree' : 'Scatter the Magic'}
+                            </button>
+                        </div>
+                        <div className="absolute top-8 right-8 z-10">
+                            <Leva collapsed />
+                        </div>
                     </div>
-                    <div className="absolute top-8 right-8 z-10">
-                        <Leva collapsed />
-                    </div>
-                </div>
+                </TreeContext.Provider>
             );
         };
 
-        // 渲染到页面
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
