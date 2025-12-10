@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>圣诞粒子树-清晰文字版</title>
+    <title>圣诞粒子树-心形特效版</title>
     <style>
         * { margin: 0; padding: 0; }
         body { 
@@ -42,8 +42,11 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const btn = document.querySelector('.btn');
+        let clickCount = 0; // 点击次数计数器
         let isTextActive = false;
+        let isHeartActive = false;
         let textParticles = [];
+        let heartParticles = [];
         const text = "孙思诺我喜欢你";
         const textColor = "rgba(255, 105, 180, 1)"; // 不透明粉红色，提升清晰度
         const fontSize = 70; // 增大字体
@@ -146,6 +149,51 @@
             easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
         }
 
+        // 心形粒子类
+        class HeartParticle {
+            constructor() {
+                this.centerX = canvas.width / 2;
+                this.centerY = canvas.height / 2 + 20; // 心形中心位置（圣诞树和文字中间）
+                this.radius = 120 + Math.random() * 80; // 心形轨道半径
+                this.angle = Math.random() * Math.PI * 2; // 初始角度
+                this.speed = 0.008 + Math.random() * 0.005; // 旋转速度
+                this.size = 2 + Math.random() * 2;
+                // 粉红色渐变
+                this.hue = 340 + Math.random() * 20;
+                this.color = `hsla(${this.hue}, 100%, 70%, ${0.8 + Math.random() * 0.2})`;
+                this.pulse = Math.random() * Math.PI; // 心跳脉动效果
+            }
+
+            update() {
+                // 旋转角度
+                this.angle += this.speed;
+                if (this.angle > Math.PI * 2) this.angle -= Math.PI * 2;
+                
+                // 心跳脉动效果
+                this.pulse += 0.02;
+                const pulseSize = 1 + Math.sin(this.pulse) * 0.3;
+                
+                // 计算心形坐标
+                const t = this.angle;
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                
+                // 映射到画布位置并添加脉动
+                this.x = this.centerX + (x * (this.radius / 16)) * pulseSize;
+                this.y = this.centerY + (y * (this.radius / 16)) * pulseSize * -1; // 翻转Y轴
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                // 光晕效果
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color.replace(/[^,]+(?=\))/, '0.7');
+            }
+        }
+
         // 雪花类
         class Snowflake {
             constructor() {
@@ -208,15 +256,42 @@
             }
         }
 
+        // 生成心形粒子
+        function generateHeartParticles() {
+            heartParticles = [];
+            // 生成80个心形粒子，围绕圣诞树和文字
+            for (let i = 0; i < 80; i++) {
+                heartParticles.push(new HeartParticle());
+            }
+            isHeartActive = true;
+        }
+
         // 初始化元素
         const treeParticles = Array(1200).fill().map(() => new TreeParticle());
         const snowflakes = Array(80).fill().map(() => new Snowflake());
 
-        // 点击按钮触发文字特效
+        // 点击按钮触发不同特效
         btn.addEventListener('click', () => {
-            if (!isTextActive) {
+            clickCount++;
+            // 第一次点击：显示文字粒子
+            if (clickCount === 1 && !isTextActive) {
                 generateTextParticles();
                 isTextActive = true;
+            }
+            // 第二次点击：显示心形粒子
+            else if (clickCount === 2 && !isHeartActive) {
+                generateHeartParticles();
+                // 按钮文字变化
+                btn.textContent = "圣诞快乐 ❤️";
+            }
+            // 多次点击：重置效果
+            else if (clickCount > 2) {
+                clickCount = 0;
+                isTextActive = false;
+                isHeartActive = false;
+                textParticles = [];
+                heartParticles = [];
+                btn.textContent = "圣诞节快乐";
             }
         });
 
@@ -259,6 +334,14 @@
                 textParticles.forEach(p => {
                     p.update();
                     p.draw();
+                });
+            }
+
+            // 绘制心形粒子
+            if (isHeartActive) {
+                heartParticles.forEach(h => {
+                    h.update();
+                    h.draw();
                 });
             }
 
