@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>圣诞粒子树（还原树形）</title>
+    <title>实心圣诞粒子树</title>
     <style>
         * { margin: 0; padding: 0; }
         body { 
@@ -44,45 +44,55 @@
             canvas.height = window.innerHeight;
         }
 
-        // 粒子类（恢复三层圣诞树结构）
+        // 粒子类（填充三层三角形区域，实现实心树）
         class Particle {
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 const centerX = canvas.width / 2;
-                const starY = canvas.height / 2 - 180; // 星星位置上移，更像树顶
-                const totalTreeHeight = 300; // 圣诞树总高度（三层）
-                this.layer = Math.floor(Math.random() * 3); // 0=顶层 1=中层 2=底层（严格三层）
-                const layerHeight = totalTreeHeight / 3; // 每层高度固定
+                const starY = canvas.height / 2 - 180; // 树顶星星Y坐标
+                const totalTreeHeight = 300; // 圣诞树总高度
+                this.layer = Math.floor(Math.random() * 3); // 0=顶层 1=中层 2=底层
+                const layerHeight = totalTreeHeight / 3;
+                const layerYStart = starY + this.layer * layerHeight; // 每层的Y起始位置
 
-                // 顶层（小三角形，树尖）
+                // 每层三角形的宽度和范围（确保粒子填满区域）
+                let layerWidth, maxXOffset, minY, maxY;
                 if (this.layer === 0) {
-                    const layerWidth = 80; // 顶层宽度小
-                    this.targetX = centerX + (Math.random() - 0.5) * layerWidth;
-                    // 严格三角形：离中心越远，Y越靠下
-                    this.targetY = starY + Math.abs(this.targetX - centerX) * (layerHeight / (layerWidth/2));
-                }
-                // 中层（中等三角形）
-                else if (this.layer === 1) {
-                    const layerWidth = 150; // 中层宽度更大
-                    this.targetX = centerX + (Math.random() - 0.5) * layerWidth;
-                    this.targetY = starY + layerHeight + Math.abs(this.targetX - centerX) * (layerHeight / (layerWidth/2));
-                }
-                // 底层（大三角形，树底）
-                else {
-                    const layerWidth = 220; // 底层宽度最大
-                    this.targetX = centerX + (Math.random() - 0.5) * layerWidth;
-                    this.targetY = starY + layerHeight * 2 + Math.abs(this.targetX - centerX) * (layerHeight / (layerWidth/2));
+                    layerWidth = 80;
+                    maxXOffset = layerWidth / 2;
+                    minY = layerYStart;
+                    maxY = layerYStart + layerHeight;
+                } else if (this.layer === 1) {
+                    layerWidth = 150;
+                    maxXOffset = layerWidth / 2;
+                    minY = layerYStart;
+                    maxY = layerYStart + layerHeight;
+                } else {
+                    layerWidth = 220;
+                    maxXOffset = layerWidth / 2;
+                    minY = layerYStart;
+                    maxY = layerYStart + layerHeight;
                 }
 
-                // 圣诞色调（红绿+粉）
-                const colors = [
-                    `rgba(255, 105, 180, ${0.8 + Math.random() * 0.2})`, // 粉
-                    `rgba(34, 139, 34, ${0.8 + Math.random() * 0.2})`,  // 绿
-                    `rgba(255, 69, 0, ${0.8 + Math.random() * 0.2})`    // 红
-                ];
-                this.color = colors[Math.floor(Math.random() * colors.length)];
-                this.size = 2 + Math.random() * 2.5; // 粒子更小更紧凑
+                // 随机X（在层宽度范围内）
+                this.targetX = centerX + (Math.random() - 0.5) * layerWidth;
+                // 随机Y（在层高度内，且满足三角形斜率：离中心越远，Y越接近层底部）
+                const slope = layerHeight / maxXOffset;
+                const xOffset = Math.abs(this.targetX - centerX);
+                const minLayerY = minY + xOffset * slope;
+                this.targetY = minLayerY + Math.random() * (maxY - minLayerY);
+
+                // 圣诞色调（增加绿色占比，保持红/粉点缀）
+                const colorProb = Math.random();
+                if (colorProb < 0.6) {
+                    this.color = `rgba(34, 139, 34, ${0.8 + Math.random() * 0.2})`; // 绿（60%）
+                } else if (colorProb < 0.85) {
+                    this.color = `rgba(255, 105, 180, ${0.8 + Math.random() * 0.2})`; // 粉（25%）
+                } else {
+                    this.color = `rgba(255, 69, 0, ${0.8 + Math.random() * 0.2})`; // 红（15%）
+                }
+                this.size = 2 + Math.random() * 2; // 更小粒子，填充更密集
                 this.speed = 0.004 + Math.random() * 0.006;
                 this.progress = 0;
             }
@@ -99,8 +109,8 @@
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = this.color.replace(/[^,]+(?=\))/, '0.7');
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = this.color.replace(/[^,]+(?=\))/, '0.6');
             }
 
             lerp(a, b, t) {
@@ -140,7 +150,7 @@
 
         const particles = [];
         const snowflakes = [];
-        for (let i = 0; i < 700; i++) particles.push(new Particle()); // 粒子数适配三层结构
+        for (let i = 0; i < 1200; i++) particles.push(new Particle()); // 大幅增加粒子数，填满区域
         for (let i = 0; i < 80; i++) snowflakes.push(new Snowflake());
 
         function animate() {
@@ -157,7 +167,7 @@
                 s.draw();
             });
 
-            // 树顶星星（居中树尖）
+            // 树顶星星
             const starX = canvas.width / 2;
             const starY = canvas.height / 2 - 180;
             drawStar(starX, starY, 18, 10, 5);
@@ -166,7 +176,7 @@
             ctx.shadowBlur = 15;
             ctx.shadowColor = "rgba(255, 215, 0, 0.9)";
 
-            // 圣诞树底座（树底正下方）
+            // 圣诞树底座
             const baseX = canvas.width / 2;
             const baseY = starY + 300;
             ctx.beginPath();
