@@ -2,55 +2,114 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>圣诞视频特效</title>
+    <!-- 适配移动端 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的HTML页面</title>
+    <!-- 基础样式 -->
     <style>
-        /* 全屏视频特效样式：覆盖整个页面，无黑边，自动循环播放 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            overflow: hidden; /* 隐藏滚动条 */
+            font-family: "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
         }
-        .video-container {
-            position: fixed; /* 固定全屏 */
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1; /* 视频在底层，不遮挡其他内容 */
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* 全屏无黑边 */
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
         }
-        /* 可选：添加文字/装饰在视频上方 */
-        .content {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            top: 50%;
-            transform: translateY(-50%);
+
+        p {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
             color: white;
-            font-size: 30px;
-            text-shadow: 0 0 10px #ff0000;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        ul {
+            margin: 15px 0 15px 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 视频容器：核心特效视频 -->
-    <div class="video-container">
-        <video autoplay loop muted playsinline>
-            <source src="christmas-effect.mp4" type="video/mp4">
-            你的浏览器不支持视频播放
-        </video>
+    <div class="container">
+        <h1>欢迎使用我的HTML页面</h1>
+        
+        <p>这是一个可以直接粘贴使用的完整HTML文件，包含以下特性：</p>
+        
+        <ul>
+            <li>中文编码适配（UTF-8）</li>
+            <li>移动端响应式布局</li>
+            <li>基础的样式美化</li>
+            <li>交互按钮样式</li>
+            <li>清晰的页面结构</li>
+        </ul>
+
+        <p>你可以根据自己的需求修改以下内容：</p>
+        <ul>
+            <li>页面标题（title标签）</li>
+            <li>文字内容和图片</li>
+            <li>颜色、字体等样式</li>
+            <li>按钮链接和功能</li>
+        </ul>
+
+        <button class="btn" onclick="alert('按钮点击成功！')">点击我试试</button>
     </div>
 
-    <!-- 可选：视频上方的文字（可删除/修改） -->
-    <div class="content">
-        圣诞快乐 🎄
-    </div>
+    <!-- 可选：添加JavaScript脚本 -->
+    <script>
+        // 页面加载完成后执行
+        window.onload = function() {
+            console.log("页面加载完成！");
+        };
+    </script>
 </body>
 </html>
