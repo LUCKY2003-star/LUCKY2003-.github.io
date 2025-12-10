@@ -32,64 +32,132 @@
             box-shadow: 0 0 25px #FFD700;
             transform: translateX(-50%) scale(1.05);
         }
-        /* 文字样式 */
-        .love-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            font-weight: bold;
-            color: #FFD700;
-            text-shadow: 0 0 20px #FFD700, 0 0 40px #FF69B4, 0 0 60px #FF4500;
-            opacity: 0;
-            transition: all 0.8s ease;
-            z-index: 5;
-            pointer-events: none;
-            font-family: "Microsoft YaHei", sans-serif;
-        }
-        .love-text.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1.2);
-        }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <button class="btn">圣诞节快乐</button>
-    <div class="love-text">孙思诺我喜欢你</div>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const btn = document.querySelector('.btn');
-        const loveText = document.querySelector('.love-text');
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // 点击按钮显示文字
+        // 文字粒子相关变量
+        let textParticles = [];
+        let isTextShowing = false;
+        const text = "孙思诺我喜欢你";
+        const fontSize = 60;
+        const textColor = "#FF69B4"; // 粉红色
+
+        // 点击按钮触发文字粒子效果
         btn.addEventListener('click', () => {
-            // 添加显示类
-            loveText.classList.add('show');
-            
-            // 1.5秒后稍微缩小一点，保持显示
-            setTimeout(() => {
-                loveText.style.transform = 'translate(-50%, -50%) scale(1.1)';
-            }, 1500);
-            
-            // 可选：如果想要文字自动消失，取消下面的注释
-            // setTimeout(() => {
-            //     loveText.classList.remove('show');
-            //     loveText.style.transform = 'translate(-50%, -50%) scale(1)';
-            // }, 5000);
+            if (!isTextShowing) {
+                createTextParticles();
+                isTextShowing = true;
+            }
         });
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            
+            // 重新创建文字粒子（窗口调整大小时）
+            if (isTextShowing) {
+                textParticles = [];
+                createTextParticles();
+            }
         }
 
-        // 粒子类（填充三层三角形区域，实现实心树）
+        // 创建文字粒子
+        function createTextParticles() {
+            // 先绘制文字到离屏画布获取像素数据
+            const offscreenCanvas = document.createElement('canvas');
+            const offscreenCtx = offscreenCanvas.getContext('2d');
+            
+            // 设置离屏画布大小
+            offscreenCanvas.width = canvas.width;
+            offscreenCanvas.height = canvas.height;
+            
+            // 在离屏画布上绘制文字
+            offscreenCtx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
+            offscreenCtx.textAlign = 'center';
+            offscreenCtx.textBaseline = 'middle';
+            offscreenCtx.fillStyle = 'white';
+            offscreenCtx.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            // 获取像素数据
+            const imageData = offscreenCtx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            
+            // 遍历像素创建粒子（只在文字像素位置创建）
+            textParticles = [];
+            for (let y = 0; y < canvas.height; y += 4) { // 每隔4个像素采样一次，控制粒子密度
+                for (let x = 0; x < canvas.width; x += 4) {
+                    const index = (y * canvas.width + x) * 4;
+                    const alpha = pixels[index + 3];
+                    
+                    if (alpha > 128) { // 只在有文字的位置创建粒子
+                        textParticles.push(new TextParticle(x, y));
+                    }
+                }
+            }
+        }
+
+        // 文字粒子类
+        class TextParticle {
+            constructor(targetX, targetY) {
+                // 粒子初始位置随机分布在画布上
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                
+                // 目标位置（文字像素位置）
+                this.targetX = targetX;
+                this.targetY = targetY;
+                
+                // 粉红色系颜色变化
+                const hue = 340 + Math.random() * 20; // 粉红色色相范围
+                this.color = `hsla(${hue}, 100%, 70%, ${0.8 + Math.random() * 0.2})`;
+                
+                this.size = 1.5 + Math.random() * 2;
+                this.speed = 0.008 + Math.random() * 0.012;
+                this.progress = 0;
+            }
+
+            update() {
+                this.progress += this.speed;
+                if (this.progress > 1) this.progress = 1;
+                
+                // 缓动函数，让粒子运动更自然
+                const easeProgress = this.easeOutCubic(this.progress);
+                this.x = this.lerp(this.x, this.targetX, easeProgress);
+                this.y = this.lerp(this.y, this.targetY, easeProgress);
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // 添加光晕效果
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color.replace(/[^,]+(?=\))/, '0.7');
+            }
+
+            lerp(a, b, t) {
+                return a + (b - a) * t;
+            }
+
+            // 缓动函数
+            easeOutCubic(t) {
+                return 1 - Math.pow(1 - t, 3);
+            }
+        }
+
+        // 圣诞树粒子类（填充三层三角形区域，实现实心树）
         class Particle {
             constructor() {
                 this.x = Math.random() * canvas.width;
@@ -202,15 +270,25 @@
             ctx.fillStyle = "rgba(10, 16, 41, 0.2)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // 绘制圣诞树粒子
             particles.forEach(p => {
                 p.update();
                 p.draw();
             });
 
+            // 绘制雪花
             snowflakes.forEach(s => {
                 s.update();
                 s.draw();
             });
+
+            // 绘制文字粒子
+            if (isTextShowing && textParticles.length > 0) {
+                textParticles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            }
 
             // 树顶星星
             const starX = canvas.width / 2;
