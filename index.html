@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grand Luxury Interactive Christmas Tree</title>
-    <!-- 引入CDN资源（使用UMD格式，避免import语法） -->
+    <!-- 正确的 CDN 资源链接 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
@@ -39,12 +39,12 @@
 <body class="bg-luxury-gradient min-h-screen overflow-hidden font-luxury">
     <div id="root" class="w-full h-screen"></div>
 
-    <!-- 使用Babel转换JSX，避免import语法 -->
     <script type="text/babel">
-        const { useRef, useState, useEffect, useImperativeHandle, createContext } = React;
+        // 全局变量挂载
+        const { useRef, useState, useEffect, useImperativeHandle, createContext, useContext } = React;
         const { Canvas, useFrame, useThree } = window.ReactThreeFiber;
         const { OrbitControls, Instance, useInstancedMesh, Bloom, PerspectiveCamera } = window.ReactThreeDrei;
-        const { Leva, useControls } = window.Leva;
+        const { Leva } = window.Leva;
         const THREE = window.THREE;
 
         // 状态上下文
@@ -180,7 +180,7 @@
             return null;
         };
 
-        // 装饰物系统（移除GLB依赖，改用基础几何体）
+        // 装饰物系统
         const OrnamentsSystem = () => {
             const [treeState] = useContext(TreeContext);
             const [progress, setProgress] = useState(0);
@@ -320,7 +320,7 @@
             );
         };
 
-        // 渲染
+        // 渲染到页面
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
