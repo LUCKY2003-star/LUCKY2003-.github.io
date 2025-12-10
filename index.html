@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D旋转实心圣诞粒子树</title>
+    <title>3D旋转实心圣诞粒子树（修复版）</title>
     <style>
         * { margin: 0; padding: 0; }
         body { 
@@ -39,34 +39,46 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // 全局旋转参数
-        let rotationAngle = 0; // 旋转角度
-        const rotationSpeed = 0.003; // 旋转速度
-        const treeCenterX = canvas.width / 2; // 树中心X
-        const treeCenterY = canvas.height / 2 + 30; // 树中心Y（适配树高度）
-        const depthFactor = 0.08; // 3D深度因子（控制旋转立体感）
+        // 全局参数（优化性能+修复渲染）
+        let rotationAngle = 0;
+        const rotationSpeed = 0.002; // 降低旋转速度，减少性能压力
+        let treeCenterX = canvas.width / 2;
+        let treeCenterY = canvas.height / 2 + 30;
+        const depthFactor = 0.06; // 降低深度因子，避免粒子偏移过度
+        let isLoaded = false; // 标记粒子是否加载完成
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // 重置旋转中心
             treeCenterX = canvas.width / 2;
             treeCenterY = canvas.height / 2 + 30;
+            // 重置粒子（避免窗口缩放后错位）
+            initParticles();
         }
 
-        // 粒子类（保留实心+圣诞色，增加3D旋转属性）
+        // 粒子数组（全局变量，方便重置）
+        let particles = [];
+        const snowflakes = [];
+
+        // 初始化粒子（独立函数，确保加载完成）
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 800; i++) { // 减少粒子数，提升性能
+                particles.push(new Particle());
+            }
+            isLoaded = true;
+        }
+
         class Particle {
             constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                const centerX = canvas.width / 2;
-                const starY = canvas.height / 2 - 180; 
-                const totalTreeHeight = 300; 
-                this.layer = Math.floor(Math.random() * 3); 
+                const centerX = treeCenterX;
+                const starY = treeCenterY - 210; // 基于树中心定位，避免偏移
+                const totalTreeHeight = 300;
+                this.layer = Math.floor(Math.random() * 3);
                 const layerHeight = totalTreeHeight / 3;
                 const layerYStart = starY + this.layer * layerHeight;
 
-                // 每层三角形参数（实心填充）
+                // 每层三角形参数
                 let layerWidth, maxXOffset, minY, maxY;
                 if (this.layer === 0) {
                     layerWidth = 80;
@@ -85,74 +97,68 @@
                     maxY = layerYStart + layerHeight;
                 }
 
-                // 原始目标坐标（未旋转）
+                // 原始坐标（基于树中心，避免错位）
                 this.originalTargetX = centerX + (Math.random() - 0.5) * layerWidth;
                 const slope = layerHeight / maxXOffset;
                 const xOffset = Math.abs(this.originalTargetX - centerX);
                 const minLayerY = minY + xOffset * slope;
                 this.originalTargetY = minLayerY + Math.random() * (maxY - minLayerY);
                 
-                // Z轴深度（控制3D旋转时的偏移）
-                this.z = (Math.random() - 0.5) * 80; // 左右深度偏移
-                this.currentX = this.x;
-                this.currentY = this.y;
+                this.z = (Math.random() - 0.5) * 60; // 缩小深度范围，避免粒子消失
+                this.currentX = this.originalTargetX; // 初始位置直接设为目标，避免加载延迟
+                this.currentY = this.originalTargetY;
 
-                // 圣诞色调（绿60%、粉25%、红15%）
+                // 圣诞色调
                 const colorProb = Math.random();
                 if (colorProb < 0.6) {
-                    this.color = `rgba(34, 139, 34, ${0.8 + Math.random() * 0.2})`; 
+                    this.color = `rgba(34, 139, 34, ${0.9})`; // 固定透明度，提升渲染效率
                 } else if (colorProb < 0.85) {
-                    this.color = `rgba(255, 105, 180, ${0.8 + Math.random() * 0.2})`; 
+                    this.color = `rgba(255, 105, 180, ${0.9})`;
                 } else {
-                    this.color = `rgba(255, 69, 0, ${0.8 + Math.random() * 0.2})`; 
+                    this.color = `rgba(255, 69, 0, ${0.9})`;
                 }
-                this.size = 2 + Math.random() * 2; 
-                this.speed = 0.004 + Math.random() * 0.006;
-                this.progress = 0;
+                this.size = 2.5 + Math.random() * 1.5; // 增大粒子，减少数量也能保持实心
+                this.displaySize = this.size;
+                this.displayColor = this.color;
             }
 
-            // 3D旋转计算
             rotate3D() {
-                // 1. 转换为相对旋转中心的坐标
                 const dx = this.originalTargetX - treeCenterX;
                 const dy = this.originalTargetY - treeCenterY;
 
-                // 2. 计算旋转后的X（Y轴旋转，模拟绕树垂直轴旋转）
+                // 简化旋转计算，提升性能
                 const rotatedX = dx * Math.cos(rotationAngle) - this.z * Math.sin(rotationAngle);
-                // 3. 计算深度偏移后的Y（增强3D感）
                 const rotatedY = dy + (this.z * Math.sin(rotationAngle) * depthFactor);
-                // 4. 还原到画布坐标
+                
                 this.targetX = treeCenterX + rotatedX;
                 this.targetY = treeCenterY + rotatedY;
 
-                // 5. 根据深度调整大小和透明度（近大远小）
-                this.displaySize = this.size * (1 + (this.z * Math.sin(rotationAngle) * 0.01));
-                this.displayAlpha = this.color.match(/[\d.]+(?=\))/)[0] * (1 + (this.z * Math.sin(rotationAngle) * 0.01));
-                this.displayColor = this.color.replace(/[\d.]+(?=\))/, this.displayAlpha > 1 ? 1 : this.displayAlpha < 0.5 ? 0.5 : this.displayAlpha);
+                // 简化大小/透明度调整
+                const depthScale = 1 + (this.z * Math.sin(rotationAngle) * 0.008);
+                this.displaySize = this.size * depthScale;
+                this.displayColor = this.color.replace(/[\d.]+(?=\))/, Math.min(1, Math.max(0.7, depthScale)));
             }
 
             update() {
-                this.progress += this.speed;
-                if (this.progress > 1) this.progress = 1;
-                // 实时计算3D旋转后的目标坐标
                 this.rotate3D();
-                // 粒子缓动到目标位置
-                this.currentX = this.lerp(this.currentX, this.targetX, this.progress);
-                this.currentY = this.lerp(this.currentY, this.targetY, this.progress);
+                // 直接设置位置（取消缓动，提升性能+避免加载延迟）
+                this.currentX = this.targetX;
+                this.currentY = this.targetY;
             }
 
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.currentX, this.currentY, this.displaySize || this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.displayColor || this.color;
+                ctx.arc(this.currentX, this.currentY, this.displaySize, 0, Math.PI * 2);
+                ctx.fillStyle = this.displayColor;
                 ctx.fill();
-                ctx.shadowBlur = 6;
-                ctx.shadowColor = this.displayColor || this.color.replace(/[\d.]+(?=\))/, '0.6');
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = this.displayColor.replace(/[\d.]+(?=\))/, '0.7');
             }
+        }
 
-            lerp(a, b, t) {
-                return a + (b - a) * t;
-            }
+        // 初始化雪花
+        for (let i = 0; i < 60; i++) {
+            snowflakes.push(new Snowflake());
         }
 
         class Snowflake {
@@ -163,10 +169,10 @@
             reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = -Math.random() * 50;
-                this.size = 1.5 + Math.random() * 3;
-                this.speedY = 0.8 + Math.random() * 1.5;
-                this.speedX = (Math.random() - 0.5) * 0.4;
-                this.opacity = 0.6 + Math.random() * 0.4;
+                this.size = 1.5 + Math.random() * 2;
+                this.speedY = 0.8 + Math.random() * 1.2;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.opacity = 0.6 + Math.random() * 0.3;
             }
 
             update() {
@@ -180,34 +186,35 @@
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
                 ctx.fill();
-                ctx.shadowBlur = 4;
-                ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
             }
         }
 
-        // 初始化粒子（1200个保证实心）
-        const particles = [];
-        const snowflakes = [];
-        for (let i = 0; i < 1200; i++) particles.push(new Particle());
-        for (let i = 0; i < 80; i++) snowflakes.push(new Snowflake());
+        function drawStar(x, y) {
+            ctx.beginPath();
+            const angle = Math.PI / 5;
+            const outerRadius = 18;
+            const innerRadius = 10;
+            for (let i = 0; i < 10; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const px = x + Math.cos(i * angle) * radius;
+                const py = y + Math.sin(i * angle) * radius;
+                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fillStyle = "rgba(255, 215, 0, 0.95)";
+            ctx.fill();
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = "rgba(255, 215, 0, 0.9)";
+        }
 
         function animate() {
-            // 清屏（保留渐变背景）
-            ctx.fillStyle = "rgba(10, 16, 41, 0.2)";
+            ctx.fillStyle = "rgba(10, 16, 41, 0.3)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 更新旋转角度
+            if (!isLoaded) return requestAnimationFrame(animate); // 等待粒子加载
+
             rotationAngle += rotationSpeed;
             if (rotationAngle > Math.PI * 2) rotationAngle = 0;
-
-            // 按深度排序（保证3D层级正确）
-            particles.sort((a, b) => b.z - a.z);
-            
-            // 更新并绘制粒子
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
 
             // 绘制雪花
             snowflakes.forEach(s => {
@@ -215,54 +222,39 @@
                 s.draw();
             });
 
-            // 旋转的树顶星星（跟随树中心旋转）
-            const starOriginalX = canvas.width / 2;
-            const starOriginalY = canvas.height / 2 - 180;
-            const starZ = 0; // 星星在中心，无深度偏移
-            const starDx = starOriginalX - treeCenterX;
-            const starRotatedX = starDx * Math.cos(rotationAngle) - starZ * Math.sin(rotationAngle);
-            const starRotatedY = (starOriginalY - treeCenterY) + (starZ * Math.sin(rotationAngle) * depthFactor);
-            const starX = treeCenterX + starRotatedX;
-            const starY = treeCenterY + starRotatedY;
-            
-            drawStar(starX, starY, 18, 10, 5);
-            ctx.fillStyle = "rgba(255, 215, 0, 0.95)";
-            ctx.fill();
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "rgba(255, 215, 0, 0.9)";
+            // 排序+绘制粒子
+            particles.sort((a, b) => b.z - a.z);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
 
-            // 旋转的圣诞树底座
-            const baseOriginalX = canvas.width / 2;
-            const baseOriginalY = canvas.height / 2 - 180 + 300;
-            const baseZ = 0;
+            // 绘制星星（基于树中心旋转）
+            const starOriginalX = treeCenterX;
+            const starOriginalY = treeCenterY - 210;
+            const starDx = starOriginalX - treeCenterX;
+            const starRotatedX = starDx * Math.cos(rotationAngle) - 0 * Math.sin(rotationAngle);
+            const starRotatedY = (starOriginalY - treeCenterY) + (0 * Math.sin(rotationAngle) * depthFactor);
+            drawStar(treeCenterX + starRotatedX, treeCenterY + starRotatedY);
+
+            // 绘制底座
+            const baseOriginalX = treeCenterX;
+            const baseOriginalY = treeCenterY + 90;
             const baseDx = baseOriginalX - treeCenterX;
-            const baseRotatedX = baseDx * Math.cos(rotationAngle) - baseZ * Math.sin(rotationAngle);
-            const baseRotatedY = (baseOriginalY - treeCenterY) + (baseZ * Math.sin(rotationAngle) * depthFactor);
-            const baseX = treeCenterX + baseRotatedX;
-            const baseY = treeCenterY + baseRotatedY;
-            
+            const baseRotatedX = baseDx * Math.cos(rotationAngle) - 0 * Math.sin(rotationAngle);
+            const baseRotatedY = (baseOriginalY - treeCenterY) + (0 * Math.sin(rotationAngle) * depthFactor);
             ctx.beginPath();
-            ctx.rect(baseX - 35, baseY, 70, 35);
+            ctx.rect(treeCenterX + baseRotatedX - 35, treeCenterY + baseRotatedY, 70, 35);
             ctx.fillStyle = "rgba(139, 69, 19, 0.9)";
             ctx.fill();
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 7;
             ctx.shadowColor = "rgba(139, 69, 19, 0.7)";
 
             requestAnimationFrame(animate);
         }
 
-        function drawStar(x, y, outerRadius, innerRadius, points) {
-            ctx.beginPath();
-            const angle = Math.PI / points;
-            for (let i = 0; i < 2 * points; i++) {
-                const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                const px = x + Math.cos(i * angle) * radius;
-                const py = y + Math.sin(i * angle) * radius;
-                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-        }
-
+        // 初始化粒子+启动动画
+        initParticles();
         animate();
     </script>
 </body>
