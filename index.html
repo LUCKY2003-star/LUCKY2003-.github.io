@@ -3,173 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>浪漫圣诞树</title>
+    <title>浪漫圣诞快乐</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; }
         body {
+            background: #000;
+            height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background: #000;
             overflow: hidden;
+            font-family: 'Arial', sans-serif;
         }
-        /* 圣诞树主体 */
-        .christmas-tree {
+        /* 圣诞树容器 */
+        .tree {
             position: relative;
         }
-        /* 树的三层 */
-        .tree-layer {
+        /* 树的层级 */
+        .layer {
+            position: absolute;
             width: 0;
             height: 0;
-            border-left: 80px solid transparent;
-            border-right: 80px solid transparent;
-            border-bottom: 100px solid #2ecc71;
-            margin: 0 auto;
-            position: relative;
+            border-left: 120px solid transparent;
+            border-right: 120px solid transparent;
+            border-bottom: 150px solid #1a7928;
+            transform: translateX(-50%);
+            left: 50%;
         }
-        .tree-layer:nth-child(2) {
+        .layer-1 { top: 0px; }
+        .layer-2 { 
+            top: 60px; 
+            border-left: 90px solid transparent;
+            border-right: 90px solid transparent;
+            border-bottom: 120px solid #1e8e3e;
+        }
+        .layer-3 { 
+            top: 140px; 
             border-left: 60px solid transparent;
             border-right: 60px solid transparent;
-            border-bottom: 80px solid #27ae60;
-            margin-top: -20px;
-        }
-        .tree-layer:nth-child(3) {
-            border-left: 40px solid transparent;
-            border-right: 40px solid transparent;
-            border-bottom: 60px solid #219653;
-            margin-top: -20px;
+            border-bottom: 90px solid #22c55e;
         }
         /* 树干 */
-        .tree-trunk {
-            width: 30px;
-            height: 60px;
-            background: #8b4513;
-            margin: 0 auto;
-            border-radius: 5px;
+        .trunk {
+            position: absolute;
+            width: 40px;
+            height: 80px;
+            background: #834d1b;
+            left: 50%;
+            top: 230px;
+            transform: translateX(-50%);
+            border-radius: 8px;
         }
-        /* 星星顶饰 */
+        /* 星星 */
         .star {
             position: absolute;
-            top: -30px;
+            width: 50px;
+            height: 50px;
+            background: #fef08a;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
             left: 50%;
+            top: -30px;
             transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            background: #f1c40f;
-            clip-path: polygon(
-                50% 0%,
-                61% 35%,
-                98% 35%,
-                68% 57%,
-                79% 91%,
-                50% 70%,
-                21% 91%,
-                32% 57%,
-                2% 35%,
-                39% 35%
-            );
-            animation: twinkle 2s infinite alternate;
+            animation: starGlow 2s infinite alternate;
+            box-shadow: 0 0 20px #fef08a, 0 0 40px #fef08a88;
         }
-        /* 装饰球 */
-        .ornament {
+        /* 装饰灯 */
+        .light {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 15px;
+            height: 15px;
             border-radius: 50%;
-            animation: float 3s infinite ease-in-out;
+            animation: lightBlink 1.5s infinite alternate;
         }
-        .ornament:nth-child(4) {
-            top: 40px;
-            left: 30px;
-            background: #e74c3c;
-            animation-delay: 0s;
+        /* 祝福语 */
+        .wish {
+            color: #fff;
+            font-size: 24px;
+            margin-top: 350px;
+            text-align: center;
+            text-shadow: 0 0 10px #fff, 0 0 20px #ff00de;
+            animation: wishFloat 3s infinite alternate;
         }
-        .ornament:nth-child(5) {
-            top: 80px;
-            right: 20px;
-            background: #3498db;
-            animation-delay: 0.5s;
+        /* 动画 */
+        @keyframes starGlow {
+            from { filter: brightness(1); }
+            to { filter: brightness(1.5); }
         }
-        .ornament:nth-child(6) {
-            top: 120px;
-            left: 50px;
-            background: #9b59b6;
-            animation-delay: 1s;
+        @keyframes lightBlink {
+            from { opacity: 0.7; transform: scale(1); }
+            to { opacity: 1; transform: scale(1.2); }
         }
-        /* 动画效果 */
-        @keyframes twinkle {
-            0% { opacity: 1; transform: translateX(-50%) scale(1); }
-            50% { opacity: 0.8; transform: translateX(-50%) scale(1.1); }
-            100% { opacity: 1; transform: translateX(-50%) scale(1); }
+        @keyframes wishFloat {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
         }
-        @keyframes float {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0); }
-        }
-        /* 雪花背景 */
-        .snowflake {
+        /* 雪花 */
+        .snow {
             position: absolute;
             color: #fff;
-            font-size: 12px;
-            opacity: 0.8;
-            animation: snowfall linear infinite;
+            font-size: 14px;
+            user-select: none;
+            animation: snowFall linear infinite;
         }
-        @keyframes snowfall {
-            0% {
-                transform: translateY(-10px) rotate(0deg);
-                opacity: 0;
-            }
+        @keyframes snowFall {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
             10% { opacity: 1; }
             90% { opacity: 1; }
-            100% {
-                transform: translateY(100vh) rotate(360deg);
-                opacity: 0;
-            }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="christmas-tree">
+    <div class="tree">
         <div class="star"></div>
-        <div class="tree-layer"></div>
-        <div class="tree-layer"></div>
-        <div class="tree-layer"></div>
-        <div class="tree-trunk"></div>
-        <div class="ornament"></div>
-        <div class="ornament"></div>
-        <div class="ornament"></div>
+        <div class="layer layer-1"></div>
+        <div class="layer layer-2"></div>
+        <div class="layer layer-3"></div>
+        <div class="trunk"></div>
     </div>
+    <div class="wish">Merry Christmas 🎄 愿你岁岁安澜</div>
+
+    <!-- 圣诞音乐（自动播放需用户交互，浏览器限制） -->
+    <audio id="christmas-music" loop>
+        <source src="https://assets.mixkit.co/music/preview/mixkit-sleigh-bells-1320.mp3" type="audio/mpeg">
+    </audio>
+    <button style="position: absolute; top: 20px; left: 20px; padding: 8px 16px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="document.getElementById('christmas-music').play()">播放圣诞音乐</button>
 
     <script>
-        // 生成随机雪花
-        function createSnowflakes() {
-            const snowCount = 80;
-            const body = document.querySelector('body');
-            for (let i = 0; i < snowCount; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.classList.add('snowflake');
-                snowflake.textContent = '❄️';
-                // 随机位置和动画时长
-                const left = Math.random() * 100;
-                const size = Math.random() * 10 + 5;
-                const duration = Math.random() * 10 + 5;
-                const delay = Math.random() * 5;
-                
-                snowflake.style.left = `${left}vw`;
-                snowflake.style.fontSize = `${size}px`;
-                snowflake.style.animationDuration = `${duration}s`;
-                snowflake.style.animationDelay = `${delay}s`;
-                
-                body.appendChild(snowflake);
+        // 生成装饰灯
+        const lights = [
+            { top: 40, left: 30, color: '#ff0000' },
+            { top: 60, left: 80, color: '#00ff00' },
+            { top: 80, left: 50, color: '#0000ff' },
+            { top: 100, left: 20, color: '#ffff00' },
+            { top: 120, left: 70, color: '#ff00ff' },
+            { top: 140, left: 40, color: '#00ffff' },
+            { top: 160, left: 90, color: '#ffffff' },
+            { top: 180, left: 30, color: '#ff9900' },
+        ];
+        const tree = document.querySelector('.tree');
+        lights.forEach(light => {
+            const el = document.createElement('div');
+            el.className = 'light';
+            el.style.top = `${light.top}px`;
+            el.style.left = `${light.left}px`;
+            el.style.backgroundColor = light.color;
+            el.style.boxShadow = `0 0 10px ${light.color}, 0 0 20px ${light.color}88`;
+            el.style.animationDelay = `${Math.random() * 1.5}s`;
+            tree.appendChild(el);
+        });
+
+        // 生成雪花
+        function createSnow() {
+            for (let i = 0; i < 100; i++) {
+                const snow = document.createElement('div');
+                snow.className = 'snow';
+                snow.textContent = '❄️';
+                snow.style.left = `${Math.random() * 100}vw`;
+                snow.style.animationDuration = `${Math.random() * 15 + 5}s`;
+                snow.style.fontSize = `${Math.random() * 10 + 5}px`;
+                snow.style.animationDelay = `${Math.random() * 10}s`;
+                document.body.appendChild(snow);
             }
         }
-        createSnowflakes();
+        createSnow();
     </script>
 </body>
 </html>
